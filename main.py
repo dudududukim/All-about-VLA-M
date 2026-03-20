@@ -59,7 +59,7 @@ def generate_html(all_papers: dict, updated: str, github_repository: str) -> str
           <td><a href="{link}" target="_blank">{title}</a></td>
           <td>{date}</td>
           <td>{comment}</td>
-          <td class="abstract">{abstract}</td>
+          <td><details><summary>Show</summary>{abstract}</details></td>
         </tr>"""
 
         keyword_id = keyword.replace(" ", "-").lower()
@@ -98,7 +98,8 @@ def generate_html(all_papers: dict, updated: str, github_repository: str) -> str
     th {{ background: #f0f2f5; text-align: left; padding: 0.55rem 0.75rem; font-weight: 600; white-space: nowrap; }}
     td {{ padding: 0.5rem 0.75rem; border-top: 1px solid #eaecef; vertical-align: top; }}
     td:nth-child(2) {{ white-space: nowrap; }}
-    td.abstract {{ font-size: 0.82rem; color: #57606a; max-width: 400px; }}
+    details summary {{ cursor: pointer; color: #0969da; font-size: 0.82rem; }}
+    details[open] {{ font-size: 0.82rem; color: #57606a; }}
     a {{ color: #0969da; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
     tr.hidden {{ display: none; }}

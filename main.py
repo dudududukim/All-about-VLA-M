@@ -163,16 +163,14 @@ back_up_files()  # back up README.md and ISSUE_TEMPLATE.md
 try:
     # write to README.md
     f_rm = open("README.md", "w")
-    f_rm.write("# Daily Papers\n")
+    f_rm.write("# All about VLA-M\n\n")
     f_rm.write(
-        "The project automatically fetches the latest papers from arXiv based on keywords.\n\n"
-        "The subheadings in the README file represent the search keywords.\n\n"
-        "Only the most recent articles for each keyword are retained, up to a maximum of 100 papers.\n\n"
-        "You can click the 'Watch' button to receive daily email notifications.\n\n"
-        "> 📄 **[Browse papers with LLM summaries on GitHub Pages](https://dudududukim.github.io/All-about-VLA-M)**"
-        " — filterable table with AI-generated summaries for every paper.\n\n"
-        "> ⚙️ **GitHub Pages setup (one-time):** Go to repo **Settings → Pages → Source**: "
-        "`Deploy from branch`, branch `main`, folder `/docs`, then save.\n\n"
+        "📄 **[Browse papers → GitHub Pages](https://dudududukim.github.io/All-about-VLA-M)**\n\n"
+        "Papers on Vision-Language-Action models, robot manipulation, diffusion policy, and related topics "
+        "are fetched daily from arXiv. "
+        "Each paper is summarized in one sentence by an LLM, and the full list is searchable on the GitHub Pages site above.\n\n"
+        "---\n\n"
+        "*Based on [DailyArxiv](https://github.com/Ed1sonChen/DailyArxiv) by Ed1sonChen.*\n\n"
         "Last update: {0}\n\n".format(current_date)
     )
 
@@ -188,7 +186,6 @@ try:
 
     for keyword in keywords:
         try:
-            f_rm.write("## {0}\n".format(keyword))
             f_is.write("## {0}\n".format(keyword))
             if len(keyword.split()) == 1: link = "AND"
             else: link = "OR"
@@ -206,10 +203,7 @@ try:
 
             all_papers_for_html[keyword] = papers_with_summary
 
-            rm_table = generate_table(papers)
             is_table = generate_table(papers[:issues_result], ignore_keys=["Abstract"])
-            f_rm.write(rm_table)
-            f_rm.write("\n\n")
             f_is.write(is_table)
             f_is.write("\n\n")
             time.sleep(5)  # avoid being blocked by arXiv API

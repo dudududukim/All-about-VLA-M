@@ -4,6 +4,10 @@ on:
     - cron: '0 8 * * *'   # 08:00 UTC daily
   workflow_dispatch:
 
+concurrency:
+  group: update-papers
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

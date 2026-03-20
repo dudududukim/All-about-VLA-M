@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import time
 import pytz
 import urllib.parse
@@ -34,38 +33,13 @@ issues_result = 15  # maximum papers to be included in the issue
 column_names = ["Title", "Link", "Abstract", "Date", "Comment"]
 
 
-def summarize_abstract(abstract: str) -> str:
-    """Call GitHub Models API for a one-sentence summary. Returns '' on any failure."""
-    try:
-        token = os.environ.get("GITHUB_TOKEN", "")
-        if not token:
-            return ""
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": "Summarize the following ML paper abstract in one concise sentence."},
-                {"role": "user", "content": abstract}
-            ],
-            "max_tokens": 80
-        }
-        req = urllib.request.Request(
-            "https://models.inference.ai.azure.com/chat/completions",
-            data=json.dumps(payload).encode(),
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return json.loads(resp.read())["choices"][0]["message"]["content"].strip()
-    except Exception as e:
-        print(f"summarize_abstract failed: {e}")
-        return ""
-
 
 def _html_escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
 def generate_html(all_papers: dict, updated: str, github_repository: str) -> str:
-    """Generate docs/index.html from {keyword: [paper_dict]} where paper_dict has Title, Link, Date, Comment, Summary."""
+    """Generate docs/index.html from {keyword: [paper_dict]}."""
     parts = github_repository.split("/") if "/" in github_repository else ["", ""]
     github_username, repo_name = parts[0], parts[1] if len(parts) > 1 else ""
     hits_url = f"https://{github_username}.github.io/{repo_name}"
@@ -79,13 +53,13 @@ def generate_html(all_papers: dict, updated: str, github_repository: str) -> str
             link = _html_escape(p.get("Link", ""))
             date = _html_escape(p.get("Date", "").split("T")[0])
             comment = _html_escape(p.get("Comment", ""))
-            summary = _html_escape(p.get("Summary", ""))
+            abstract = _html_escape(p.get("Abstract", ""))
             rows += f"""
         <tr>
           <td><a href="{link}" target="_blank">{title}</a></td>
           <td>{date}</td>
           <td>{comment}</td>
-          <td>{summary}</td>
+          <td class="abstract">{abstract}</td>
         </tr>"""
 
         keyword_id = keyword.replace(" ", "-").lower()
@@ -94,7 +68,7 @@ def generate_html(all_papers: dict, updated: str, github_repository: str) -> str
     <h2>{_html_escape(keyword)}</h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Title</th><th>Date</th><th>Comment</th><th>Summary</th></tr></thead>
+        <thead><tr><th>Title</th><th>Date</th><th>Comment</th><th>Abstract</th></tr></thead>
         <tbody>{rows}
         </tbody>
       </table>
@@ -124,9 +98,12 @@ def generate_html(all_papers: dict, updated: str, github_repository: str) -> str
     th {{ background: #f0f2f5; text-align: left; padding: 0.55rem 0.75rem; font-weight: 600; white-space: nowrap; }}
     td {{ padding: 0.5rem 0.75rem; border-top: 1px solid #eaecef; vertical-align: top; }}
     td:nth-child(2) {{ white-space: nowrap; }}
+    td.abstract {{ font-size: 0.82rem; color: #57606a; max-width: 400px; }}
     a {{ color: #0969da; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
     tr.hidden {{ display: none; }}
+    .search-opts {{ margin-top: 0.5rem; display: flex; gap: 1.2rem; font-size: 0.9rem; color: #57606a; }}
+    .search-opts label {{ cursor: pointer; }}
   </style>
 </head>
 <body>
@@ -137,20 +114,30 @@ def generate_html(all_papers: dict, updated: str, github_repository: str) -> str
   </header>
 
   <div class="search-wrap">
-    <input id="search" type="text" placeholder="Search by title or summary…" />
+    <input id="search" type="text" placeholder="Search papers…" />
+    <div class="search-opts">
+      <label><input type="radio" name="field" value="title" checked /> Title only</label>
+      <label><input type="radio" name="field" value="both" /> Title + Abstract</label>
+    </div>
   </div>
 
 {sections_html}
 
   <script>
     const input = document.getElementById('search');
-    input.addEventListener('input', function() {{
-      const q = this.value.toLowerCase();
+    function applyFilter() {{
+      const q = input.value.toLowerCase();
+      const field = document.querySelector('input[name="field"]:checked').value;
       document.querySelectorAll('tbody tr').forEach(function(row) {{
         const title = (row.cells[0] ? row.cells[0].textContent : '').toLowerCase();
-        const summary = (row.cells[3] ? row.cells[3].textContent : '').toLowerCase();
-        row.classList.toggle('hidden', q && !title.includes(q) && !summary.includes(q));
+        const abstract = (row.cells[3] ? row.cells[3].textContent : '').toLowerCase();
+        const match = !q || title.includes(q) || (field === 'both' && abstract.includes(q));
+        row.classList.toggle('hidden', !match);
       }});
+    }}
+    input.addEventListener('input', applyFilter);
+    document.querySelectorAll('input[name="field"]').forEach(function(r) {{
+      r.addEventListener('change', applyFilter);
     }});
   </script>
 </body>
@@ -194,14 +181,7 @@ try:
                 print("Failed to get papers for keyword: {0}".format(keyword))
                 continue
 
-            # LLM summaries — one per paper, with rate limiting
-            papers_with_summary = []
-            for paper in papers:
-                summary = summarize_abstract(paper.get("Abstract", ""))
-                time.sleep(1)  # rate limit: 1 s between LLM calls
-                papers_with_summary.append({**paper, "Summary": summary})
-
-            all_papers_for_html[keyword] = papers_with_summary
+            all_papers_for_html[keyword] = papers
 
             is_table = generate_table(papers[:issues_result], ignore_keys=["Abstract"])
             f_is.write(is_table)

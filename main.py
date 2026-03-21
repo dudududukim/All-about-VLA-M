@@ -22,7 +22,8 @@ with open("README.md", "r") as f:
         if "Last update:" in line: break
     last_update_date = line.split(": ")[1].strip()
     if last_update_date == current_date:
-        sys.exit("Already updated today!")
+        print("Already updated today!")
+        sys.exit(0)
 
 keywords = ["Vision Language Action", "robot manipulation", "Vision Language Model", "world model", "diffusion policy", "reinforcement learning robot"]
 

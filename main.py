@@ -21,7 +21,8 @@ with open("README.md", "r") as f:
         line = f.readline()
         if "Last update:" in line: break
     last_update_date = line.split(": ")[1].strip()
-    if last_update_date == current_date:
+    force_update = os.environ.get("FORCE_UPDATE", "false").lower() == "true"
+    if last_update_date == current_date and not force_update:
         print("Already updated today!")
         sys.exit(0)
 

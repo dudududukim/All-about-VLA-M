@@ -8,5 +8,5 @@ Papers on Vision-Language-Action models, robot manipulation, diffusion policy, a
 
 *Based on [DailyArxiv](https://github.com/Ed1sonChen/DailyArxiv) by Ed1sonChen.*
 
-Last update: 2026-04-09
+Last update: 2026-04-10
 
